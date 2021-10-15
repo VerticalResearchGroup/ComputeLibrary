@@ -73,7 +73,7 @@ module rr_arbiter_locking(
       itr_idx = i + current_free;
       if(valid[itr_idx] && !(|ready)) begin
         if(out_grant.ready && last[itr_idx]) begin
-          current_free_next = current_free_next + 'd1;
+          current_free_next = itr_idx + 'd1;
         end
         ready[itr_idx] = out_grant.ready;
         out_grant.valid = '1;
