@@ -27,94 +27,30 @@
 
 `timescale 1ns / 1ps
 
-interface valid_intr();
+package sgpr_pkg;
 
-  parameter int DATA_WIDTH = 32;
+  parameter int RD_PORT_CNT = 2;
 
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
+  typedef enum {
+    sgpr_read,
+    sgpr_write
+  } sgpr_op_t;
 
-  modport master(
-    output valid,
-    output data
-  );
+  typedef struct packed {
+    sgpr_op_t sgpr_op;
+    logic [RD_PORT_CNT-1:0][11:0] addr;
+    logic [31:0] base;
+    logic [63:0] val;
+    logic scc;
+  } sgpr_req_t;
 
-  modport slave(
-    input valid,
-    input data
-  );
+  typedef struct packed {
+    sgpr_op_t sgpr_op;
+    logic scc;
+    logic [RD_PORT_CNT-1:0][63:0] val;
+  } sgpr_resp_t;
 
-endinterface
+  parameter int SGPR_REQ_SIZE = $bits(sgpr_req_t);
+  parameter int SGPR_RESP_SIZE = $bits(sgpr_resp_t);
 
-interface valid_burst_intr();
-
-  parameter int DATA_WIDTH = 32;
-
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
-  logic last;
-
-  modport master(
-    output valid,
-    output last,
-    output data
-  );
-
-  modport slave(
-    input valid,
-    output last,
-    input data
-  );
-
-endinterface
-
-interface decoupled_intr();
-
-  parameter int DATA_WIDTH = 32;
-
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
-  logic ready;
-
-  modport master(
-    output data,
-    output valid,
-    input ready
-  );
-
-  modport slave(
-    input data,
-    input valid,
-    output ready
-  );
-
-  function fire();
-    return valid & ready;
-  endfunction
-
-endinterface
-
-interface decoupled_burst_intr();
-
-  parameter int DATA_WIDTH = 32;
-
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
-  logic last;
-  logic ready;
-
-  modport master(
-    output data,
-    output valid,
-    output last,
-    input ready
-  );
-
-  modport slave(
-    input data,
-    input valid,
-    input last,
-    output ready
-  );
-
-endinterface
+endpackage

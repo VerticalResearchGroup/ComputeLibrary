@@ -27,94 +27,41 @@
 
 `timescale 1ns / 1ps
 
-interface valid_intr();
+import salu_instr_pkg::*;
 
-  parameter int DATA_WIDTH = 32;
+module decoder(
+  instr,
 
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
+  salu_decoded,
 
-  modport master(
-    output valid,
-    output data
+  clk,
+  rst_n
+);
+
+  decoupled_intr.slave instr;
+
+  decoupled_intr.master salu_decoded;
+
+  input wire clk;
+  input wire rst_n;
+
+  // FIXME: Placeholder until proper flow control is implemented.
+  assign instr.ready = '1;
+
+  valid_intr #(.DATA_WIDTH(INSTR_SIZE)) salu_intr();
+  valid_intr #(.DATA_WIDTH(SALU_INST_PARAM_SIZE)) salu_op();
+
+  assign salu_intr.valid = instr.valid;
+  assign salu_intr.data = instr.data;
+
+  assign salu_decoded.valid = salu_op.valid;
+  assign salu_decoded.data = salu_op.data;
+
+  salu_decoder salu_decoder_inst(
+    .instr(salu_intr),
+    .operation(salu_op),
+    .clk,
+    .rst_n
   );
 
-  modport slave(
-    input valid,
-    input data
-  );
-
-endinterface
-
-interface valid_burst_intr();
-
-  parameter int DATA_WIDTH = 32;
-
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
-  logic last;
-
-  modport master(
-    output valid,
-    output last,
-    output data
-  );
-
-  modport slave(
-    input valid,
-    output last,
-    input data
-  );
-
-endinterface
-
-interface decoupled_intr();
-
-  parameter int DATA_WIDTH = 32;
-
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
-  logic ready;
-
-  modport master(
-    output data,
-    output valid,
-    input ready
-  );
-
-  modport slave(
-    input data,
-    input valid,
-    output ready
-  );
-
-  function fire();
-    return valid & ready;
-  endfunction
-
-endinterface
-
-interface decoupled_burst_intr();
-
-  parameter int DATA_WIDTH = 32;
-
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
-  logic last;
-  logic ready;
-
-  modport master(
-    output data,
-    output valid,
-    output last,
-    input ready
-  );
-
-  modport slave(
-    input data,
-    input valid,
-    input last,
-    output ready
-  );
-
-endinterface
+endmodule

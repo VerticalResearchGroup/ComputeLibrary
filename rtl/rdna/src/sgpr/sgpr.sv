@@ -27,94 +27,56 @@
 
 `timescale 1ns / 1ps
 
-interface valid_intr();
+import sgpr_pkg::*;
 
-  parameter int DATA_WIDTH = 32;
+module sgpr(
+  sgpr_rd_req,
+  sgpr_wr_req,
+  sgpr_rd_resp,
+  sgpr_wr_resp,
 
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
+  clk,
+  rst_n
+);
 
-  modport master(
-    output valid,
-    output data
+  decoupled_intr.slave sgpr_rd_req;
+  decoupled_intr.slave sgpr_wr_req;
+  decoupled_intr.master sgpr_rd_resp;
+  decoupled_intr.master sgpr_wr_resp;
+
+  input wire clk;
+  input wire rst_n;
+
+  valid_intr #(.DATA_WIDTH(SGPR_REQ_SIZE)) sgpr_ram_rd_req();
+  valid_intr #(.DATA_WIDTH(SGPR_REQ_SIZE)) sgpr_ram_wr_req();
+  valid_intr #(.DATA_WIDTH(SGPR_RESP_SIZE)) sgpr_ram_rd_resp();
+  valid_intr #(.DATA_WIDTH(SGPR_RESP_SIZE)) sgpr_ram_wr_resp();
+
+  sgpr_rd_controller sgpr_rd_controller_inst(
+    .sgpr_rd_req,
+    .sgpr_rd_resp,
+    .sgpr_ram_rd_req,
+    .sgpr_ram_rd_resp,
+    .clk,
+    .rst_n
   );
 
-  modport slave(
-    input valid,
-    input data
+  sgpr_wr_controller sgpr_wr_controller_inst(
+    .sgpr_wr_req,
+    .sgpr_wr_resp,
+    .sgpr_ram_wr_req,
+    .sgpr_ram_wr_resp,
+
+    .clk,
+    .rst_n
   );
 
-endinterface
-
-interface valid_burst_intr();
-
-  parameter int DATA_WIDTH = 32;
-
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
-  logic last;
-
-  modport master(
-    output valid,
-    output last,
-    output data
+  sgpr_mem sgpr_mem_inst(
+    .sgpr_ram_rd_req,
+    .sgpr_ram_wr_req,
+    .sgpr_ram_rd_resp,
+    .clk,
+    .rst_n
   );
 
-  modport slave(
-    input valid,
-    output last,
-    input data
-  );
-
-endinterface
-
-interface decoupled_intr();
-
-  parameter int DATA_WIDTH = 32;
-
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
-  logic ready;
-
-  modport master(
-    output data,
-    output valid,
-    input ready
-  );
-
-  modport slave(
-    input data,
-    input valid,
-    output ready
-  );
-
-  function fire();
-    return valid & ready;
-  endfunction
-
-endinterface
-
-interface decoupled_burst_intr();
-
-  parameter int DATA_WIDTH = 32;
-
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
-  logic last;
-  logic ready;
-
-  modport master(
-    output data,
-    output valid,
-    output last,
-    input ready
-  );
-
-  modport slave(
-    input data,
-    input valid,
-    input last,
-    output ready
-  );
-
-endinterface
+endmodule

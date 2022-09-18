@@ -27,94 +27,45 @@
 
 `timescale 1ns / 1ps
 
-interface valid_intr();
+import sgpr_pkg::*;
 
-  parameter int DATA_WIDTH = 32;
+module sgpr_wr_controller(
 
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
+  sgpr_wr_req,
+  sgpr_wr_resp,
+  sgpr_ram_wr_req,
+  sgpr_ram_wr_resp,
 
-  modport master(
-    output valid,
-    output data
-  );
+  clk,
+  rst_n
+);
 
-  modport slave(
-    input valid,
-    input data
-  );
+  decoupled_intr.slave sgpr_wr_req;
+  decoupled_intr.master sgpr_wr_resp;
 
-endinterface
+  valid_intr.master sgpr_ram_wr_req;
+  valid_intr.slave sgpr_ram_wr_resp;
 
-interface valid_burst_intr();
+  input wire clk;
+  input wire rst_n;
 
-  parameter int DATA_WIDTH = 32;
+  sgpr_req_t sgpr_wr_req_data;
+  sgpr_req_t sgpr_ram_wr_req_data;
+  sgpr_resp_t sgpr_ram_wr_resp_data;
 
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
-  logic last;
+  assign sgpr_wr_req_data = sgpr_wr_req.data;
+  // NOTE: For now, there's no arbitration/conflict avoidance for write requests, they
+  // are always assumed to flow through.
+  assign sgpr_wr_req.ready = '1;
 
-  modport master(
-    output valid,
-    output last,
-    output data
-  );
+  always_comb begin
+    sgpr_ram_wr_req_data = sgpr_wr_req_data;
+    sgpr_ram_wr_req_data.addr[0] = sgpr_wr_req_data.addr[0] + sgpr_wr_req_data.base;
+  end
 
-  modport slave(
-    input valid,
-    output last,
-    input data
-  );
+  assign sgpr_ram_wr_req.valid = sgpr_wr_req.valid;
+  assign sgpr_ram_wr_req.data = sgpr_ram_wr_req_data;
+  assign sgpr_wr_resp.valid = sgpr_ram_wr_resp.valid;
+  assign sgpr_wr_resp.data = sgpr_ram_wr_resp.data;
 
-endinterface
-
-interface decoupled_intr();
-
-  parameter int DATA_WIDTH = 32;
-
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
-  logic ready;
-
-  modport master(
-    output data,
-    output valid,
-    input ready
-  );
-
-  modport slave(
-    input data,
-    input valid,
-    output ready
-  );
-
-  function fire();
-    return valid & ready;
-  endfunction
-
-endinterface
-
-interface decoupled_burst_intr();
-
-  parameter int DATA_WIDTH = 32;
-
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
-  logic last;
-  logic ready;
-
-  modport master(
-    output data,
-    output valid,
-    output last,
-    input ready
-  );
-
-  modport slave(
-    input data,
-    input valid,
-    input last,
-    output ready
-  );
-
-endinterface
+endmodule

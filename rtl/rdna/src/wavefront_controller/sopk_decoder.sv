@@ -27,94 +27,47 @@
 
 `timescale 1ns / 1ps
 
-interface valid_intr();
+import salu_instr_pkg::*;
+import salu_lookup_pkg::*;
 
-  parameter int DATA_WIDTH = 32;
+module sopk_decoder(
+  instr,
+  operation,
+  clk,
+  rst_n
+);
 
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
+  valid_intr.slave instr;
+  valid_intr.master operation;
 
-  modport master(
-    output valid,
-    output data
-  );
+  input wire clk;
+  input wire rst_n;
 
-  modport slave(
-    input valid,
-    input data
-  );
+  salu_instr_params_t instruction_parameters;
+  sopk_instr_t instruction;
+  salu_lookup_t lookup_vals;
 
-endinterface
+  assign instruction = instr.data;
+  assign lookup_vals = sopk_lookup_table[instruction.opcode];
 
-interface valid_burst_intr();
+  always_comb begin
+    instruction_parameters = '0;
+    instruction_parameters.common_params = lookup_vals;
+    instruction_parameters.rd_req.addr[0] = instruction.sdst;
+    // TODO: Incorporate base address once wavefronts are actually supported.
+    instruction_parameters.rd_req.base = '0;
+    instruction_parameters.wr_req.addr[0] = instruction.sdst;
+    instruction_parameters.wr_req.base = '0;
+  end
 
-  parameter int DATA_WIDTH = 32;
+  always_ff@(posedge clk) begin
+    if(!rst_n) begin
+      operation.valid <= '0;
+      operation.data <= '0;
+    end else begin
+      operation.valid <= instruction.salu_type == SALU_SOPK && instr.valid;
+      operation.data <= instruction_parameters;
+    end
+  end
 
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
-  logic last;
-
-  modport master(
-    output valid,
-    output last,
-    output data
-  );
-
-  modport slave(
-    input valid,
-    output last,
-    input data
-  );
-
-endinterface
-
-interface decoupled_intr();
-
-  parameter int DATA_WIDTH = 32;
-
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
-  logic ready;
-
-  modport master(
-    output data,
-    output valid,
-    input ready
-  );
-
-  modport slave(
-    input data,
-    input valid,
-    output ready
-  );
-
-  function fire();
-    return valid & ready;
-  endfunction
-
-endinterface
-
-interface decoupled_burst_intr();
-
-  parameter int DATA_WIDTH = 32;
-
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
-  logic last;
-  logic ready;
-
-  modport master(
-    output data,
-    output valid,
-    output last,
-    input ready
-  );
-
-  modport slave(
-    input data,
-    input valid,
-    input last,
-    output ready
-  );
-
-endinterface
+endmodule

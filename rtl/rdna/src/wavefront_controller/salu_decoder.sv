@@ -27,94 +27,27 @@
 
 `timescale 1ns / 1ps
 
-interface valid_intr();
+import salu_instr_pkg::*;
 
-  parameter int DATA_WIDTH = 32;
+module salu_decoder(
+  instr,
+  operation,
+  clk,
+  rst_n
+);
 
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
+  valid_intr.slave instr;
+  valid_intr.master operation;
 
-  modport master(
-    output valid,
-    output data
+  input wire clk;
+  input wire rst_n;
+
+  // TODO: Integrate the other SALU types and priority select between them.
+  sop2_decoder sop2_decoder_inst(
+    .instr,
+    .operation,
+    .clk,
+    .rst_n
   );
 
-  modport slave(
-    input valid,
-    input data
-  );
-
-endinterface
-
-interface valid_burst_intr();
-
-  parameter int DATA_WIDTH = 32;
-
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
-  logic last;
-
-  modport master(
-    output valid,
-    output last,
-    output data
-  );
-
-  modport slave(
-    input valid,
-    output last,
-    input data
-  );
-
-endinterface
-
-interface decoupled_intr();
-
-  parameter int DATA_WIDTH = 32;
-
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
-  logic ready;
-
-  modport master(
-    output data,
-    output valid,
-    input ready
-  );
-
-  modport slave(
-    input data,
-    input valid,
-    output ready
-  );
-
-  function fire();
-    return valid & ready;
-  endfunction
-
-endinterface
-
-interface decoupled_burst_intr();
-
-  parameter int DATA_WIDTH = 32;
-
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
-  logic last;
-  logic ready;
-
-  modport master(
-    output data,
-    output valid,
-    output last,
-    input ready
-  );
-
-  modport slave(
-    input data,
-    input valid,
-    input last,
-    output ready
-  );
-
-endinterface
+endmodule

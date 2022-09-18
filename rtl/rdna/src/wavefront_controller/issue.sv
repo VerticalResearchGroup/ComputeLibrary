@@ -27,94 +27,33 @@
 
 `timescale 1ns / 1ps
 
-interface valid_intr();
+import salu_instr_pkg::*;
 
-  parameter int DATA_WIDTH = 32;
+module issue(
+  salu_decoded,
+  sgpr_rd_req,
+  sgpr_rd_resp,
+  salu_issued,
 
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
+  clk,
+  rst_n
+);
 
-  modport master(
-    output valid,
-    output data
+  decoupled_intr.slave salu_decoded;
+  decoupled_intr.master sgpr_rd_req;
+  decoupled_intr.slave sgpr_rd_resp;
+  decoupled_intr.master salu_issued;
+
+  input wire clk;
+  input wire rst_n;
+
+  issue_salu issue_salu_inst(
+    .salu_decoded,
+    .sgpr_rd_req,
+    .sgpr_rd_resp,
+    .salu_issued,
+    .clk,
+    .rst_n
   );
 
-  modport slave(
-    input valid,
-    input data
-  );
-
-endinterface
-
-interface valid_burst_intr();
-
-  parameter int DATA_WIDTH = 32;
-
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
-  logic last;
-
-  modport master(
-    output valid,
-    output last,
-    output data
-  );
-
-  modport slave(
-    input valid,
-    output last,
-    input data
-  );
-
-endinterface
-
-interface decoupled_intr();
-
-  parameter int DATA_WIDTH = 32;
-
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
-  logic ready;
-
-  modport master(
-    output data,
-    output valid,
-    input ready
-  );
-
-  modport slave(
-    input data,
-    input valid,
-    output ready
-  );
-
-  function fire();
-    return valid & ready;
-  endfunction
-
-endinterface
-
-interface decoupled_burst_intr();
-
-  parameter int DATA_WIDTH = 32;
-
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
-  logic last;
-  logic ready;
-
-  modport master(
-    output data,
-    output valid,
-    output last,
-    input ready
-  );
-
-  modport slave(
-    input data,
-    input valid,
-    input last,
-    output ready
-  );
-
-endinterface
+endmodule

@@ -27,94 +27,50 @@
 
 `timescale 1ns / 1ps
 
-interface valid_intr();
+import sgpr_pkg::*;
 
-  parameter int DATA_WIDTH = 32;
+module sgpr_rd_controller(
+  sgpr_rd_req,
+  sgpr_rd_resp,
+  sgpr_ram_rd_req,
+  sgpr_ram_rd_resp,
+  clk,
+  rst_n
+);
 
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
+  decoupled_intr.slave sgpr_rd_req;
+  decoupled_intr.master sgpr_rd_resp;
 
-  modport master(
-    output valid,
-    output data
-  );
+  valid_intr.master sgpr_ram_rd_req;
+  valid_intr.slave sgpr_ram_rd_resp;
 
-  modport slave(
-    input valid,
-    input data
-  );
+  input wire clk;
+  input wire rst_n;
 
-endinterface
+  sgpr_req_t sgpr_rd_req_data; 
+  sgpr_resp_t sgpr_rd_resp_data;
+  sgpr_req_t sgpr_ram_rd_req_data;
 
-interface valid_burst_intr();
+  genvar idx;
 
-  parameter int DATA_WIDTH = 32;
+  assign sgpr_rd_req.ready = '1;
+  assign sgpr_rd_req_data = sgpr_rd_req.data;
 
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
-  logic last;
+  // TODO: Add SCC.
 
-  modport master(
-    output valid,
-    output last,
-    output data
-  );
+  assign sgpr_rd_resp.valid = sgpr_ram_rd_resp.valid;
+  assign sgpr_rd_resp.data = sgpr_rd_resp_data;
 
-  modport slave(
-    input valid,
-    output last,
-    input data
-  );
+  assign sgpr_ram_rd_req.valid = sgpr_rd_req.valid;
+  assign sgpr_ram_rd_req.data = sgpr_ram_rd_req_data;
 
-endinterface
+  always_comb begin
+    sgpr_ram_rd_req_data = sgpr_rd_req_data;
+    for(int i = 0; i < RD_PORT_CNT; i++) begin
+      sgpr_ram_rd_req_data.addr[i] = sgpr_rd_req_data.addr[i] + sgpr_rd_req_data.base;
+    end
+  end
 
-interface decoupled_intr();
+  assign sgpr_rd_resp_data = sgpr_ram_rd_resp.data;
 
-  parameter int DATA_WIDTH = 32;
-
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
-  logic ready;
-
-  modport master(
-    output data,
-    output valid,
-    input ready
-  );
-
-  modport slave(
-    input data,
-    input valid,
-    output ready
-  );
-
-  function fire();
-    return valid & ready;
-  endfunction
-
-endinterface
-
-interface decoupled_burst_intr();
-
-  parameter int DATA_WIDTH = 32;
-
-  logic [DATA_WIDTH-1:0] data;
-  logic valid;
-  logic last;
-  logic ready;
-
-  modport master(
-    output data,
-    output valid,
-    output last,
-    input ready
-  );
-
-  modport slave(
-    input data,
-    input valid,
-    input last,
-    output ready
-  );
-
-endinterface
+endmodule
